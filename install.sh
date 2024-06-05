@@ -18,7 +18,7 @@ if uname -m | grep -qi 'x86\|i686\|i386' ;then
 fi
 
 #ensure proot
-TRACER_NAME=$(grep Name "/proc/${TRACER_PID}/status" | cut -d $'\t' -f 2 2>&1)
+TRACER_NAME=$(grep Name "/proc/${TRACER_PID}/status" 2> /dev/null | cut -d $'\t' -f 2)
 if [ "$TRACER_NAME" != "proot" ]; then
   echo -e "\e[91mPRoot-Apps is not designed to be installed outside a PRoot environment.\e[39m"
   error "More information here: https://wiki.termux.com/wiki/Differences_from_Linux"
