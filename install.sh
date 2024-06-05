@@ -17,17 +17,6 @@ if uname -m | grep -qi 'x86\|i686\|i386' ;then
   error "PRoot-Apps is not designed to be installed on non-ARM CPU architectures."
 fi
 
-#ensure termux/android
-if grep -q '^/data/media .*Android' /proc/mounts || cat /proc/version | grep -qi Android || cat /proc/version | grep -qi termux; then
-  export termux=1
-else
-  export termux=0
-fi
-if [[ "$termux" == 0 ]]; then
-  error "PRoot-Apps is not designed to be run outside Termux."
-fi
-unset $termux
-
 #ensure proot
 TRACER_PID=$(grep TracerPid "/proc/$$/status" | cut -d $'\t' -f 2)
 if [ "$TRACER_PID" != 0 ]; then
@@ -39,6 +28,17 @@ if [ "$TRACER_PID" != 0 ]; then
 	unset TRACER_NAME
 fi
 unset TRACER_PID
+
+#ensure termux/android
+if grep -q '^/data/media .*Android' /proc/mounts || cat /proc/version | grep -qi Android || cat /proc/version | grep -qi termux; then
+  export termux=1
+else
+  export termux=0
+fi
+if [[ "$termux" == 0 ]]; then
+  error "PRoot-Apps is not designed to be run outside Termux."
+fi
+unset $termux
 
 #ensure debian
 command -v apt >/dev/null || error "apt: command not found. Most likely this is not running in a Debian or Ubuntu based PRoot environment."
