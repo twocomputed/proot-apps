@@ -17,13 +17,6 @@ if uname -m | grep -qi 'x86\|i686\|i386' ;then
   error "PRoot-Apps is not designed to be installed on non-ARM CPU architectures."
 fi
 
-#ensure proot
-TRACER_NAME=$(grep Name "/proc/${TRACER_PID}/status" 2> /dev/null | cut -d $'\t' -f 2)
-if [ "$TRACER_NAME" != "proot" ]; then
-  echo -e "\e[91mPRoot-Apps is not designed to be installed outside a PRoot environment.\e[39m"
-  error "More information here: https://wiki.termux.com/wiki/Differences_from_Linux"
-fi
-
 #ensure termux/android
 if grep -q '^/data/media .*Android' /proc/mounts || cat /proc/version | grep -qi Android || cat /proc/version | grep -qi termux; then
   export termux=1
