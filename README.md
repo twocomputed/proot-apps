@@ -5,4 +5,6 @@ wget -qO- https://raw.githubusercontent.com/twocomputed/proot-apps/master/instal
 ```
 
 ### Supported systems:
-#### Termux
+#### Debian & Ubuntu in PRoot-Distro
+### Unsupported Systems
+#### Everything else (PC/RPi)
