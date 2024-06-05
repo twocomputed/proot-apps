@@ -2849,12 +2849,6 @@ diagnose_apps() { #Given a list of apps that failed to install/uninstall, loop t
       text+=$'\n'"Error report cannot be sent because this is not an issue with Pi-Apps."
     elif ! list_apps online | grep -q "$app" ;then
       text+=$'\n'"Error report cannot be sent because this app is not in the official repository."
-    elif [ "$action" == install ] && [ "$(app_type "$app")" == standard ] && ! files_match "${DIRECTORY}/update/pi-apps/apps/${app}/$(script_name_cpu "$app")" "${DIRECTORY}/apps/${app}/$(script_name_cpu "$app")" ;then
-      text+=$'\n'"Error report cannot be sent because this app is not the official version."
-    elif [ "$action" == uninstall ] && [ "$(app_type "$app")" == standard ] && ! files_match "${DIRECTORY}/update/pi-apps/apps/${app}/uninstall" "${DIRECTORY}/apps/${app}/uninstall" ;then
-      text+=$'\n'"Error report cannot be sent because this app is not the official version."
-    elif [ "$supported" == no ];then #variable set by the manage script
-      text+=$'\n'"Error report cannot be sent because your system is unsupported."
     else
       #if all of the above checks evaluate to FALSE, then display the "Send report" button.
       local send_button=(--button='Send report'!"${DIRECTORY}/icons/send-error-report.png":2)
