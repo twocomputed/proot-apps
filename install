@@ -96,7 +96,7 @@ StartupNotify=true" > ~/.local/share/applications/pi-apps.desktop
 else #if not on PiOS, place launcher in Preferences to match the wider decision of putting app installers there (see PR #2388)
 echo "[Desktop Entry]
 Name=PRoot-Apps
-Comment=Raspberry Pi App Store for open source projects
+Comment=Debian-based Termux PRoot App Store for open source projects
 Exec=${DIRECTORY}/gui
 Icon=${DIRECTORY}/icons/logo.png
 Terminal=false
