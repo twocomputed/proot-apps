@@ -9,7 +9,7 @@ cd "$HOME"
 
 #ensure non-root
 if [[ "$(id -u)" == 0 ]]; then
-  error "Pi-Apps is not designed to be installed as root! Please try again as a regular user."
+  error "PRoot-Apps is not designed to be installed as root! Please try again as a regular user."
 fi
 
 #ensure debian
@@ -17,16 +17,16 @@ command -v apt >/dev/null || error "apt: command not found. Most likely this sys
 
 #Ensure running arm processor
 if uname -m | grep -qi 'x86\|i686\|i386' ;then
-  error "Pi-Apps is not supported on non-ARM CPU architectures. We encourage you to use your distro's app store, like Gnome Software or Discover Software Center."
+  error "PRoot-Apps is not supported on non-ARM CPU architectures. We encourage you to use your distro's app store, like Gnome Software or Discover Software Center."
 fi
 
-sudo apt update || error "The command 'sudo apt update' failed. Before Pi-Apps will work, you must fix your apt package-management system."
+sudo apt update || error "The command 'sudo apt update' failed. Before PRoot-Apps will work, you must fix your apt package-management system."
 
 #install dependencies
 dependencies='yad curl wget aria2 lsb-release software-properties-common apt-utils apt-transport-https gnupg imagemagick bc librsvg2-bin locales shellcheck git wmctrl xdotool x11-utils rsync unzip debsums libgtk3-perl'
 
 if ! dpkg -s $dependencies &>/dev/null ;then
-  sudo apt install $dependencies -y -f --no-install-recommends || error "Pi-Apps dependencies failed to install and so the Pi-Apps install has been aborted. Before Pi-Apps can be installed you must solve any errors above."
+  sudo apt install $dependencies -y -f --no-install-recommends || error "PRoot-Apps dependencies failed to install and so the PRoot-Apps install has been aborted. Before PRoot-Apps can be installed you must solve any errors above."
 fi
 
 #remove annoying "YAD icon browser" launcher
@@ -44,11 +44,11 @@ downloaded=0 #track if pi-apps was downloaded this time
 if [ -d "$DIRECTORY" ];then    
   rm -rf ~/pi-apps-forced-update
   
-  echo "Reinstalling Pi-Apps..."
+  echo "Reinstalling PRoot-Apps..."
   downloaded=1
   output="$(git clone --depth 1 https://github.com/Botspot/pi-apps ~/pi-apps-forced-update 2>&1)"
   if [ $? != 0 ] || [ ! -d "$DIRECTORY" ];then
-    error "Pi-Apps download failed!\ngit clone output was: $output"
+    error "PRoot-Apps download failed!\ngit clone output was: $output"
   fi
   cp -af "${DIRECTORY}/data" ~/pi-apps-forced-update
   cp -af "${DIRECTORY}/apps" ~/pi-apps-forced-update
@@ -57,14 +57,14 @@ if [ -d "$DIRECTORY" ];then
   
 #if pi-apps folder does not exist, download it
 elif [ ! -d "$DIRECTORY" ];then
-  echo "Downloading Pi-Apps..."
+  echo "Downloading PRoot-Apps..."
   downloaded=1
   output="$(git clone --depth 1 https://github.com/Botspot/pi-apps "$DIRECTORY" 2>&1)"
   if [ $? != 0 ] || [ ! -d "$DIRECTORY" ];then
-    error "Pi-Apps download failed!\ngit clone output was: $output"
+    error "PRoot-Apps download failed!\ngit clone output was: $output"
   fi
   #click new installation analytics link
-  curl -s -X 'GET' "https://pi-apps-analytics.linkpc.net/pi-apps-install-script/track" -H 'accept: image/gif' -A "Pi-Apps Raspberry Pi app store" >/dev/null &
+  curl -s -X 'GET' "https://pi-apps-analytics.linkpc.net/pi-apps-install-script/track" -H 'accept: image/gif' -A "PRoot-Apps Raspberry Pi app store" >/dev/null &
 fi
 
 #Past this point, DIRECTORY variable populated with valid pi-apps directory
@@ -84,23 +84,23 @@ fi
 mkdir -p ~/.local/share/applications
 if [ -f /etc/xdg/menus/lxde-pi-applications.menu ];then #If on PiOS, place launcher in Accessories as it has always been there and is more intuitive there
 echo "[Desktop Entry]
-Name=Pi-Apps
+Name=PRoot-Apps
 Comment=Raspberry Pi App Store for open source projects
 Exec=${DIRECTORY}/gui
 Icon=${DIRECTORY}/icons/logo.png
 Terminal=false
-StartupWMClass=Pi-Apps
+StartupWMClass=PRoot-Apps
 Type=Application
 Categories=Utility
 StartupNotify=true" > ~/.local/share/applications/pi-apps.desktop
 else #if not on PiOS, place launcher in Preferences to match the wider decision of putting app installers there (see PR #2388)
 echo "[Desktop Entry]
-Name=Pi-Apps
+Name=PRoot-Apps
 Comment=Raspberry Pi App Store for open source projects
 Exec=${DIRECTORY}/gui
 Icon=${DIRECTORY}/icons/logo.png
 Terminal=false
-StartupWMClass=Pi-Apps
+StartupWMClass=PRoot-Apps
 Type=Application
 Categories=Utility;System;PackageManager;
 StartupNotify=true" > ~/.local/share/applications/pi-apps.desktop
@@ -125,12 +125,12 @@ if [ ! -f ~/.local/share/applications/pi-apps-settings.desktop ];then
   echo "Creating Settings menu button..."
 fi
 echo "[Desktop Entry]
-Name=Pi-Apps Settings
-Comment=Configure Pi-Apps or create an App
+Name=PRoot-Apps Settings
+Comment=Configure PRoot-Apps or create an App
 Exec=${DIRECTORY}/settings
 Icon=${DIRECTORY}/icons/settings.png
 Terminal=false
-StartupWMClass=Pi-Apps-Settings
+StartupWMClass=PRoot-Apps-Settings
 Type=Application
 Categories=Settings;
 StartupNotify=true" > ~/.local/share/applications/pi-apps-settings.desktop
@@ -140,11 +140,11 @@ if [ ! -f ~/.config/autostart/pi-apps-updater.desktop ];then
 fi
 mkdir -p ~/.config/autostart
 echo "[Desktop Entry]
-Name=Pi-Apps Updater
+Name=PRoot-Apps Updater
 Exec=${DIRECTORY}/updater onboot
 Icon=${DIRECTORY}/icons/logo.png
 Terminal=false
-StartupWMClass=Pi-Apps
+StartupWMClass=PRoot-Apps
 Type=Application
 X-GNOME-Autostart-enabled=true
 Hidden=false
@@ -177,7 +177,7 @@ if [ ! -f "${DIRECTORY}/data/announcements" ] || [ ! -z "$(find "${DIRECTORY}/da
 fi
 
 if [ $downloaded == 1 ];then
-  echo "Installation complete. Pi-Apps can be launched from the start menu or by running the command 'pi-apps'."
+  echo "Installation complete. PRoot-Apps can be launched from the start menu or by running the command 'pi-apps'."
 else
-  echo -e "Please note that Pi-Apps has NOT been freshly downloaded, because $DIRECTORY already exists."
+  echo -e "Please note that PRoot-Apps has NOT been freshly downloaded, because $DIRECTORY already exists."
 fi
