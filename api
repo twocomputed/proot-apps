@@ -1385,23 +1385,10 @@ bitly_link() { #compatibility function pointing to shlink_link (incase old manag
   shlink_link "$@"
 }
 
-shlink_link() { #Runs whenever an app is installed/uninstalled to tally the number of users for each app
-  #This cannot possibly be used to identify you, or any information about you.
-  #It simply "clicks" a shlink link - a shortened URL - so that the total number of clicks can be tallied to determine how popular a certain app is.
-  app="$1"
-  trigger="$2"
-  
-  [ -z "$app" ] && error "shlink_link(): requires an app argument"
-  [ -z "$trigger" ] && error "shlink_link(): requires a trigger argument"
-  
-  #if the 'Enable Analytics' setting is enabled
-  if [ "$(cat "${DIRECTORY}/data/settings/Enable analytics")" == 'Yes' ];then
-    #determine the name of the link to "click"
-    shlinklink="https://pi-apps-analytics.linkpc.net/pi-apps-$trigger-$(echo "$app" | tr -d ' ' | sed 's/[^a-zA-Z0-9]//g')/track"
-    #click it
-    curl -s -X 'GET' "$shlinklink" -H 'accept: image/gif' -A "PRoot-Apps Raspberry Pi app store" >/dev/null &
-  fi
+shlink_link() {
+  echo "Tracking attempt stopped."
 }
+
 
 usercount() { #Return number of users for specified app. $1 is app name. If empty, all are shown.
   #If clicklist file missing or over a day old, download it.
@@ -2484,7 +2471,7 @@ sudo apt purge --autoremove linux-image-*-arm64")
     fi
   fi
 
-  if grep -qF "E: Unable to correct problems, you have held broken packages." <<<"$errors" && grep -q "The following packages have unmet dependencies:" <<<"$errors" && ([ "$__os_id" == "Debian" ] || [ "$__os_id" == "Raspbian" ]) ;then
+  if grep -qF "E: Unable to correct problems, you have held broken packages." <<<"$errors" && grep -q "The following packages have unmet dependencies:" <<<"$errors" && ([ "$__os_id" == "Debian" ] || [ "$__os_id" == "Raspbian" ]); then
     if apt-get indextargets --no-release-info --format '$(SITE) $(RELEASE) $(COMPONENT) $(TARGET_OF)' | sort -u | awk '{if ($4=="deb") print $1" "$2" "$3 }' | grep -v '$(COMPONENT)$' | grep "debian.org/debian" | grep "$__os_codename-backports " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" ; then
       local backports_conflicts="$(grep -E "^ .* : Depends:" <<<"$errors" | awk '{print $1, $4}' | tr " " "\n" | sed 's/:armhf\|:arm64\|:all//g' | sort -u | xargs -r apt list -a 2>/dev/null | grep '\[installed' | grep '\-backports,now' | awk -F/ '{print $1}')"
       backports_conflicts+=$'\n'"$(grep -E "^ +Depends:" <<<"$errors" | awk '{print $2}' | sed 's/:armhf\|:arm64\|:all//g' | sort -u | xargs -r apt list -a 2>/dev/null | grep '\[installed' | grep '\-backports,now' | awk -F/ '{print $1}')"
@@ -2997,11 +2984,17 @@ apt.armbian.com")"
   if uname -m | grep -qi 'x86\|i686\|i386'; then
     echo "PRoot-Apps cannot run on x86 processors."
     exit 1
-  elif ([ "$TRACER_NAME" != "proot" ]) ;
+  elif [ "$TRACER_NAME" != "proot" ]; then
     unset $TRACER_NAME
     unset $TRACER_PID
     echo "PRoot-Apps is not designed to be run outside a PRoot environment."
     error "More information here: https://wiki.termux.com/wiki/Differences_from_Linux"
+    return 1
+  elif cat /proc/version | grep -qi Microsoft || cat /proc/sys/kernel/osrelease | grep -qi WSL || [[ -f "/run/WSL" ]] || [[ -f "/etc/wsl.conf" ]] || [ -n "$WSL_DISTRO_NAME" ]; then
+    echo "PRoot-Apps is not supported on WSL."
+    return 1
+  elif ([ "$__os_id" == "Debian" ] || [ "$__os_id" == "Raspbian" ]) && [ -f /etc/rpi-issue ] && [ "$__os_release" == 10 ]; then
+    echo "PRoot-Apps is no longer supported on your Pi OS ${__os_codename^} operating system. Consider installing Pi OS Bookworm. https://www.raspberrypi.com/news/bookworm-the-new-version-of-raspberry-pi-os/"
     return 1
   elif ([ "$__os_id" == "Debian" ] || [ "$__os_id" == "Raspbian" ]) && [ "$__os_release" -lt 11 ]; then
     echo "PRoot-Apps is not supported on your outdated ${__os_id^} ${__os_codename^} operating system. Expect many apps to fail. Consider installing a newer operating system."
@@ -3034,7 +3027,7 @@ apt.armbian.com")"
     echo "PRoot-Apps cannot be run as root user."
     exit 1
   elif local frankendebian="$(echo "$DEFAULT_REPOS" | grep -v $__os_codename)" && [ ! -z "$frankendebian" ];then
-    echo "Congratulations, Linux tinkerer, you broke your system. You have made your system a FrankenDebian.
+    echo "Congratulations, Linux tinkerer, you broke your RootFS. You have made your system a FrankenDebian.
 This website explains your mistake in more detail: https://wiki.debian.org/DontBreakDebian
 Your current reported release (${__os_codename^}) should not be combined with other releases.
 Specifically, the issue is $(wc -l <<<"$frankendebian" | grep -q 1 && echo 'this line' || echo 'these lines'):"
@@ -3044,15 +3037,11 @@ Specifically, the issue is $(wc -l <<<"$frankendebian" | grep -q 1 && echo 'this
       local release="$(echo "$line" | awk '{print $2}')"
       echo -e "\e[4m$line\e[24m in $(apt-get indextargets --no-release-info --format '$(SOURCESENTRY)' "Release: $release" "Site: $site" | awk -F':' '{print $1}' | sort -u)"
     done
-    echo "Your system might be recoverable if you did this recently and have not performed an apt upgrade yet, but otherwise you should probably reinstall your OS."
-    return 1
-  elif ! package_available init; then
-    echo "Congratulations, Linux tinkerer, you broke your system. The init package can not be found, which means you have removed the default debian sources from your system.
-All apt based application installs will fail. Unless you have a backup of your /etc/apt/sources.list /etc/apt/sources.list.d you will need to reinstall your OS."
+    echo "Your RootFS might be recoverable if you did this recently and have not performed an apt upgrade yet, but otherwise you should probably reinstall your OS."
     return 1
   elif [ -z "$AVAILABLE_REPOS" ];then
-    echo "Congratulations, Linux tinkerer, you broke your system. You have removed ALL debian sources from your system.
-All apt based application installs will fail. Unless you have a backup of your /etc/apt/sources.list /etc/apt/sources.list.d you will need to reinstall your OS."
+    echo "Congratulations, Linux tinkerer, you broke your RootFS. You have removed ALL debian sources from your RootFS.
+All apt based application installs will fail. Unless you have a backup of your /etc/apt/sources.list /etc/apt/sources.list.d you will need to reset your RootFS."
   # Debian, Ubuntu, and Raspbian should not have an __os_original_id variable set (since there is no upstream repo) but check anyway just incase
   elif ([ ! -z "$__os_original_id" ] && ! ([ "$__os_original_id" == "Debian" ] || [ "$__os_original_id" == "Raspbian" ] || [ "$__os_original_id" == "Ubuntu" ]));then
     echo "PRoot-Apps is not supported on $__os_original_desc, PRoot-Apps is only officially supported on the latest two LTS releases of Debian and Ubuntu."
@@ -3067,15 +3056,16 @@ All apt based application installs will fail. Unless you have a backup of your /
 PRoot-Apps does NOT support systems without ALL of $__os_codename, $__os_codename-updates, and $__os_codename-security dists and main and universe components present in the sources.list
 Please refer to the default sources.list for Ubuntu and restore all required dists and components."
     return 1
-  elif [ "$__os_id" == "Debian" ] && ! ( echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" && \
-    echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename-updates " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" && \
-    echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename-security " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" ); then
-    echo "MISSING Default Debian Repositories!
-PRoot-Apps does NOT support systems without ALL of $__os_codename, $__os_codename-updates, and $__os_codename-security dists and main component present in the sources.list
-Please refer to the default sources.list for Debian and restore all required dists and components."
-    return 1
+# Disabled to mark a Debian Unstable system supported
+#  elif [ "$__os_id" == "Debian" ] && ! ( echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" && \
+#    echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename-updates " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" && \
+#    echo "$DEFAULT_REPOS" | grep "debian.org/debian" | grep "$__os_codename-security " | awk '{if ($3=="main") print $3 }' | sort -u | tr '\n' ' ' | grep -q "main" ); then
+#    echo "MISSING Default Debian Repositories!
+#PRoot-Apps does NOT support systems without ALL of $__os_codename, $__os_codename-updates, and $__os_codename-security dists and main component present in the sources.list
+#Please refer to the default sources.list for Debian and restore all required dists and components."
+#    return 1
   elif ! apt-get --dry-run check &>/dev/null ; then
-    echo "Congratulations, Linux tinkerer, you broke your system. There are packages on your system that are in a broken state.
+    echo "Congratulations, Linux tinkerer, you broke your RootFS. There are packages on your RootFS that are in a broken state.
 Refer to the output below for any potential solutions.
 
 $(apt-get --dry-run check)"
