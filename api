@@ -2987,7 +2987,7 @@ apt.armbian.com")"
   elif [ "$TRACER_NAME" != "proot" ]; then
     unset $TRACER_NAME
     unset $TRACER_PID
-    echo "PRoot-Apps is not designed to be run outside a PRoot environment."
+    echo "PRoot-Apps is not designed to be run outside PRoot."
     echo "This website explains detailed differences between Termux and a regular Linux distro:"
     echo "https://wiki.termux.com/wiki/Differences_from_Linux"
     return 1
