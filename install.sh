@@ -21,7 +21,9 @@ fi
 if [ -z $TERMUX_VERSION ]; then
   return 1
 else
-  error "PRoot-Apps is not designed to be run outside PRoot."
+  echo -e "\e[91mPRoot-Apps is not designed to be run outside PRoot.\e[39m"
+  echo -e "\e[91mThis website explains detailed differences between Termux and a regular Linux distro:\e[39m"
+  error "https://wiki.termux.com/wiki/Differences_from_Linux"
 fi
 
 #ensure debian

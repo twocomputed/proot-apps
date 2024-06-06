@@ -2988,7 +2988,8 @@ apt.armbian.com")"
     unset $TRACER_NAME
     unset $TRACER_PID
     echo "PRoot-Apps is not designed to be run outside a PRoot environment."
-    error "More information here: https://wiki.termux.com/wiki/Differences_from_Linux"
+    echo "This website explains detailed differences between Termux and a regular Linux distro:"
+    echo "https://wiki.termux.com/wiki/Differences_from_Linux"
     return 1
   elif cat /proc/version | grep -qi Microsoft || cat /proc/sys/kernel/osrelease | grep -qi WSL || [[ -f "/run/WSL" ]] || [[ -f "/etc/wsl.conf" ]] || [ -n "$WSL_DISTRO_NAME" ]; then
     echo "PRoot-Apps is not supported on WSL."
