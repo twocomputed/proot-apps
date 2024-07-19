@@ -14,7 +14,7 @@ fi
 
 #if being sourced, ensure DIRECTORY variable set
 if [ -z "$DIRECTORY" ] || [ "$DIRECTORY" == "$HOME" ] || [ ! -d "$DIRECTORY" ] || [ ! -f "${DIRECTORY}/api" ] || [ ! -f "${DIRECTORY}/gui" ];then
-  echo "DIRECTORY variable must be set to a valid pi-apps folder. Default folder: $HOME/pi-apps"
+  echo "DIRECTORY variable must be set to a valid proot-apps folder. Default folder: $HOME/pi-apps"
   return 1
 fi
 
@@ -28,22 +28,22 @@ get_date() {
   echo $(($(date --utc +%s)/86400))
 }
 
-check_repo() { #download pi-apps repository to the update/pi-apps folder
+check_repo() { #download proot-apps repository to the update/proot-apps folder
   if [ "$speed" == fast ];then
     return 0
   fi
   echo -n "Checking for online changes... " 1>&2
   
   #if the updater script exists in update folder, then just git pull to save time
-  if [ -s "${DIRECTORY}/update/pi-apps/updater" ];then
-    cd "${DIRECTORY}/update/pi-apps"
+  if [ -s "${DIRECTORY}/update/proot-apps/updater" ];then
+    cd "${DIRECTORY}/update/proot-apps"
     git pull -q 1>&2 || rm -rf "${DIRECTORY}/update"
   fi | grep -v "Already up to date." 1>&2
   
-  git_url="$(cat "${DIRECTORY}/etc/git_url" || echo 'https://github.com/Botspot/pi-apps')"
+  git_url="$(cat "${DIRECTORY}/etc/git_url" || echo 'https://github.com/twocomputed/proot-apps')"
   
   #if updater script still does not exist then do a git clone
-  if [ ! -s "${DIRECTORY}/update/pi-apps/updater" ];then
+  if [ ! -s "${DIRECTORY}/update/proot-apps/updater" ];then
     #keep trying until success
     while true;do
       rm -rf "${DIRECTORY}/update"
@@ -100,13 +100,13 @@ check_update_interval() { #return 0 if update-interval allows update-checking to
   return 0
 }
 
-list_files() { #list all files on pi-apps with relative paths - both on main directory and update directory
+list_files() { #list all files on proot-apps with relative paths - both on main directory and update directory
   if [ ! -d "${DIRECTORY}/update" ];then
     error "${DIRECTORY}/update does not exist. Most likely there is no Internet connection."
   fi
   
   #list all files in update folder
-  cd "${DIRECTORY}/update/pi-apps" || error "Failed to enter update directory!"
+  cd "${DIRECTORY}/update/proot-apps" || error "Failed to enter update directory!"
   local updatefiles="$(find . -type f | cut -c 3- | grep -v '^\.git/\|^apps/\|^data/')"
 
   #list all files in main folder
@@ -126,10 +126,10 @@ get_updatable_files() { #sets the updatable_files variable
   else #speed was not set to 'fast', so compare each file to the one in the update folder
     #Use rsync for faster speed, if available
     if command -v rsync >/dev/null ;then
-      updatable_files=$(rsync --exclude="/apps/" --exclude="/.git/" --exclude="/data/" -ric --dry-run --out-format="%n" "${DIRECTORY}/update/pi-apps/" "${DIRECTORY}/")
+      updatable_files=$(rsync --exclude="/apps/" --exclude="/.git/" --exclude="/data/" -ric --dry-run --out-format="%n" "${DIRECTORY}/update/proot-apps/" "${DIRECTORY}/")
     fi
     if [ "$?" != "0" ] || ! command -v rsync >/dev/null ;then
-      #get list of pi-apps files without absolute paths. Example line: 'etc/terminal-run'
+      #get list of proot-apps files without absolute paths. Example line: 'etc/terminal-run'
       local file_list="$(list_files)" || exit 1
 
       updatable_files='' #the variable to be returned
@@ -141,11 +141,11 @@ get_updatable_files() { #sets the updatable_files variable
           #file is missing locally - add to updatable_files list
           updatable_files+=$'\n'"${file}"
           
-        elif [ ! -f "${DIRECTORY}/update/pi-apps/${file}" ];then
+        elif [ ! -f "${DIRECTORY}/update/proot-apps/${file}" ];then
           #file is missing in the update folder - local
           true #do not add to updatable_apps list
           
-        elif ! files_match "${DIRECTORY}/update/pi-apps/${file}" "${DIRECTORY}/${file}" ;then
+        elif ! files_match "${DIRECTORY}/update/proot-apps/${file}" "${DIRECTORY}/${file}" ;then
           #files don't match - add to updatable_files list
           updatable_files+=$'\n'"${file}"
         fi
@@ -179,9 +179,9 @@ get_updatable_apps() { #return a list of updatable apps
     #Use rsync for faster speed, if available
     if command -v rsync >/dev/null ;then
       # requires english locale to be properly enabled and for diff naming convention not to change
-      #diff -rq "${DIRECTORY}/apps" "${DIRECTORY}/update/pi-apps/apps" | sed "\|^Only in ${DIRECTORY}/apps|d" | sed "s;Only in ${DIRECTORY}/update/pi-apps/apps: ;;g" | sed "s;Files ${DIRECTORY}/apps/;;g" | awk -F '/' '{print $1}' | uniq
+      #diff -rq "${DIRECTORY}/apps" "${DIRECTORY}/update/proot-apps/apps" | sed "\|^Only in ${DIRECTORY}/apps|d" | sed "s;Only in ${DIRECTORY}/update/proot-apps/apps: ;;g" | sed "s;Files ${DIRECTORY}/apps/;;g" | awk -F '/' '{print $1}' | uniq
       # same output, but with rsync which is much simpler. slightly slower
-      updatable_apps=$(rsync -ric --dry-run --out-format="%n" "${DIRECTORY}/update/pi-apps/apps/" "${DIRECTORY}/apps/" | awk -F '/' '{print $1}' | sort | uniq; exit ${PIPESTATUS[0]})
+      updatable_apps=$(rsync -ric --dry-run --out-format="%n" "${DIRECTORY}/update/proot-apps/apps/" "${DIRECTORY}/apps/" | awk -F '/' '{print $1}' | sort | uniq; exit ${PIPESTATUS[0]})
     fi
 
     if [ "$?" != "0" ] || ! command -v rsync >/dev/null; then
@@ -195,7 +195,7 @@ get_updatable_apps() { #return a list of updatable apps
           #if app is missing locally, add to updatable list
           updatable_apps+=$'\n'"${app}"
 
-        elif ! diff -r "${DIRECTORY}/apps/${app}" "${DIRECTORY}/update/pi-apps/apps/${app}" -q >/dev/null ;then
+        elif ! diff -r "${DIRECTORY}/apps/${app}" "${DIRECTORY}/update/proot-apps/apps/${app}" -q >/dev/null ;then
           #if app-folder contents don't match, add to updatable list
           updatable_apps+=$'\n'"${app}"
         fi
@@ -315,40 +315,40 @@ list_updates_gui() { #input: updatable_apps and updatable_files variables, outpu
   local compressed_update=''
   for app in $updatable_apps ;do #generate a yad list for every updatable app
     # get app tooltip
-    read -r 2>/dev/null line <"${DIRECTORY}/update/pi-apps/apps/${app}/description" || line="Description unavailable"
+    read -r 2>/dev/null line <"${DIRECTORY}/update/proot-apps/apps/${app}/description" || line="Description unavailable"
     # if ${app} folder did not exist before and install-${arch}, install, or packages file is in the new update, then this is a "new app"
     # results in applications that only have support for a different architecture to show under the compressed update
-    if [ ! -d "${DIRECTORY}/apps/${app}" ] && ( [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install-${arch}" ] || [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install" ] || [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/packages" ] ); then
+    if [ ! -d "${DIRECTORY}/apps/${app}" ] && ( [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install-${arch}" ] || [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install" ] || [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/packages" ] ); then
       LIST+="TRUE
-${DIRECTORY}/update/pi-apps/apps/${app}/icon-24.png
+${DIRECTORY}/update/proot-apps/apps/${app}/icon-24.png
 $app (new app)
 refresh-app:$app
 $line"$'\n'
     # if install-${arch} is in the new update and it was not installable on this system before, then this is a "new app".
-    elif [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
+    elif [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
       LIST+="TRUE
-${DIRECTORY}/update/pi-apps/apps/${app}/icon-24.png
+${DIRECTORY}/update/proot-apps/apps/${app}/icon-24.png
 $app (new app)
 refresh-app:$app
 $line"$'\n'
     # similar to the above. if install script is in the new update and it was not installable on this system before, then this is a "new app".
-    elif [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
+    elif [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
       LIST+="TRUE
-${DIRECTORY}/update/pi-apps/apps/${app}/icon-24.png
+${DIRECTORY}/update/proot-apps/apps/${app}/icon-24.png
 $app (new app)
 refresh-app:$app
 $line"$'\n'
     # if app will be reinstalled then include it on the list and notify the user that it will be reinstalled
     elif will_reinstall "$app"; then
       LIST+="TRUE
-${DIRECTORY}/update/pi-apps/apps/${app}/icon-24.png
+${DIRECTORY}/update/proot-apps/apps/${app}/icon-24.png
 $app (<b>new update</b>)
 reinstall-app:$app
 $line"$'\n'
     # if app has been installed in the past then show it on the list. Useful to notify users that their app, which failed to install in the past, may now work.
     elif [ "$(app_status "${app}")" == 'corrupted' ];then
       LIST+="TRUE
-${DIRECTORY}/update/pi-apps/apps/${app}/icon-24.png
+${DIRECTORY}/update/proot-apps/apps/${app}/icon-24.png
 $app (Try installing it again!)
 refresh-app:$app
 This app failed to install last time. Maybe it will work now! After updating, try installing this app again."$'\n'
@@ -443,11 +443,11 @@ update_app() { #first arg is app name
   echo -ne "\e]0;Updating ${app}\a"
 
   # check if update app folder exists before doing anything
-  # it can happen that executing the updater from the pi-apps GUI the update folder is missing
+  # it can happen that executing the updater from the proot-apps GUI the update folder is missing
   # if the user has no internet or internet issues the update folder will be removed due to the failed git pull and then wait in the loop for a new git clone
-  # the GUI updater executes check_repo with the "fast" option so it skips updating the pi-apps update folder and obtains any previously determined updatable apps and files
+  # the GUI updater executes check_repo with the "fast" option so it skips updating the proot-apps update folder and obtains any previously determined updatable apps and files
   # if we do not check for this then apps will be removed, the older version moved to trash, and then the new version will fail to copy over since it does not exist
-  if [ -d "${DIRECTORY}/update/pi-apps/apps/${app}" ]; then
+  if [ -d "${DIRECTORY}/update/proot-apps/apps/${app}" ]; then
     local installback=no
     if will_reinstall "$app";then
       installback=yes
@@ -497,7 +497,7 @@ refresh_app() { #first arg is app name
   rm -rf "${DIRECTORY}/apps/${app}"
   
   #copy new version from update/ to apps/
-  cp -rf "${DIRECTORY}/update/pi-apps/apps/${app}" "${DIRECTORY}/apps/${app}"
+  cp -rf "${DIRECTORY}/update/proot-apps/apps/${app}" "${DIRECTORY}/apps/${app}"
   if [ "$?" == "0" ]; then
     [ "$no_status" != true ] && status_green Done
     return 0
@@ -513,11 +513,11 @@ update_file() { #first arg is file name
   mkdir -p "$(dirname "${DIRECTORY}/${file}")"
   
   #copy new version
-  if cp -f "${DIRECTORY}/update/pi-apps/${file}" "${DIRECTORY}/${file}" ;then
+  if cp -f "${DIRECTORY}/update/proot-apps/${file}" "${DIRECTORY}/${file}" ;then
     [ "$no_status" != true ] && status_green "${file} file was copied successfully."
     return 0
   else
-    [ "$no_status" != true ] && echo -e "\e[91mFailed to copy ${DIRECTORY}/update/pi-apps/${file}! \e[0m"
+    [ "$no_status" != true ] && echo -e "\e[91mFailed to copy ${DIRECTORY}/update/proot-apps/${file}! \e[0m"
     return 1
   fi
 }
@@ -525,7 +525,7 @@ update_file() { #first arg is file name
 update_git() {
   #delete .git folder, then copy the new one
   rm -rf "${DIRECTORY}/.git" || sudo rm -rf "${DIRECTORY}/.git" || error "Failed to delete old ${DIRECTORY}/.git folder!"
-  cp -a "${DIRECTORY}/update/pi-apps/.git" "${DIRECTORY}" || error "Failed to copy new .git folder!"
+  cp -a "${DIRECTORY}/update/proot-apps/.git" "${DIRECTORY}" || error "Failed to copy new .git folder!"
 }
 
 update_now_cli() { #input: updatable_files and updatable_apps variables
@@ -588,7 +588,7 @@ update_now_gui() { #input: updatable_files and updatable_apps variables
   queue="$(tac <<<"$queue")" # reverse order because manage daemon reverses it again; affects alphabetization, not priority
   #echo "update_now_gui: queue is '$queue'"
   
-  #update any files with terminal_manage. If terminal-run fails it will update the files in the background. This is a safety measure to update pi-apps scripts if terminal fails to launch.
+  #update any files with terminal_manage. If terminal-run fails it will update the files in the background. This is a safety measure to update proot-apps scripts if terminal fails to launch.
   if [ "$no_update" != true ];then
     terminal_manage_multi "$queue" &
   else
@@ -611,13 +611,13 @@ update_now_background() { #input: updatable_apps and updatable_files variables
   for app in $updatable_apps ;do #narrow down safe $updatable_apps entries
     # if ${app} folder did not exist before and install-${arch}, install, or packages file is in the new update, then this is a "new app"
     # results in applications that only have support for a different architecture to show under the compressed update
-    if [ ! -d "${DIRECTORY}/apps/${app}" ] && ( [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install-${arch}" ] || [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install" ] || [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/packages" ] ); then
+    if [ ! -d "${DIRECTORY}/apps/${app}" ] && ( [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install-${arch}" ] || [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install" ] || [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/packages" ] ); then
       continue
     # if install-${arch} is in the new update and it was not installable on this system before, then this is a "new app".
-    elif [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
+    elif [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
       continue
     # similar to the above. if install script is in the new update and it was not installable on this system before, then this is a "new app".
-    elif [ -f "${DIRECTORY}/update/pi-apps/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
+    elif [ -f "${DIRECTORY}/update/proot-apps/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/install-${arch}" ] && [ ! -f "${DIRECTORY}/apps/${app}/install" ] && [ ! -f "${DIRECTORY}/apps/${app}/packages" ]; then
       continue
     # if app will be reinstalled then don't try to reinstall it in the background
     elif will_reinstall "$app"; then
@@ -649,7 +649,7 @@ else
   shift #$2 is setting speed, so move everything over so $3 starts yad flags
 fi
 if [ "$runmode" == onboot ];then
-  #older pi-apps installations used an autostarted script with the 'onboot' flag.
+  #older proot-apps installations used an autostarted script with the 'onboot' flag.
   runmode=autostarted
 elif [ "$runmode" == source ];then
   #this script can be sourced to get functions: source "${DIRECTORY}/updater" source
@@ -701,7 +701,7 @@ if [ "$runmode" == autostarted ];then #if update-interval allows, and one app in
   updatable_apps="$(get_updatable_apps)"
   updatable_files="$(get_updatable_files)"
 
-  #Auto-refresh pi-apps files and apps that are not new and are not going to be reinstalled
+  #Auto-refresh proot-apps files and apps that are not new and are not going to be reinstalled
   if [ ! -z "$updatable_files" ] || [ ! -z "$updatable_apps" ];then
     #run background updater
     update_now_background
